@@ -13,10 +13,24 @@ typedef enum { INTEGER, STRING } ContentType;
 
 typedef enum {
 	      SET,
+	      SETI,
+	      SETS,
 	      MOV,
 	      LOG,
 	      HLT
 } InstructionSet;
+
+/*
+
+SET A 0
+SET A "asdf asdf"
+
+MOV A B
+
+LOG A
+
+HLT
+ */
 
 union Content {
     unsigned int integer;
@@ -130,7 +144,8 @@ void ghost_execute_next_instruction(ghost * machine) {
     ++machine->registers[IP].content.integer;
 }
 
-int main () {
+/*
+int mai () {
     union Content c = (union Content)
 	{
 	 .integer = A
@@ -140,11 +155,11 @@ int main () {
 	 .string = "Moi"
 	};
 
-    argument a = (argument)
-	{
-	 .value = c2,
-	 .type = STRING
-	};
+    //argument a = (argument)
+    //	{
+    //	 .value = c2,
+    //	 .type = STRING
+    //	};
     argument a2 = (argument)
 	{
 	 .value = c,
@@ -194,4 +209,127 @@ int main () {
     while (g->running) {
 	ghost_execute_next_instruction(g);
     }
+
+    return 0;
+}
+    */
+int read_line(FILE *in, char *buffer, size_t max)
+{
+  return fgets(buffer, max, in) == buffer;
+}
+
+argument * extract_two_integer_arguments (char * arguments) {
+    int first, second;
+    sscanf(arguments, "%i %i", &first, &second);
+
+    argument first_arg = (argument)
+	{
+	 .value = (union Content) {
+				   .integer = first
+				   },
+	 .type = INTEGER
+	};
+
+    argument second_arg = (argument)
+	{
+	 .value = (union Content) {
+				   .integer = second
+				   },
+	 .type = INTEGER
+	};
+
+    return (argument[]) {first_arg, second_arg};
+}
+
+argument * extract_one_integer_and_one_string_arguments (char * arguments) {
+    int first;
+    char second[128];
+    sscanf(arguments, "%i", &first);
+    sscanf(arguments, "%*[^\"]\"%[^\"]\"", second);
+
+    argument first_arg = (argument)
+	{
+	 .value = (union Content) {
+				   .integer = first
+				   },
+	 .type = INTEGER
+	};
+
+    printf("Received string argument \"%s\"...\n", second);
+    argument second_arg = (argument)
+	{
+	 .value = (union Content) {
+				   .string = second
+				   },
+	 .type = STRING
+	};
+
+    return (argument[]) {first_arg, second_arg};
+}
+
+int main () {
+    FILE* fp = fopen("foo.txt", "r");
+
+    int command;
+    char arguments[256];
+    instruction * instructions;
+    int n_of_instructions = 0;
+
+    while (fscanf(fp, "%i %[^\n]", &command, arguments) != EOF) {
+	printf("commmand >> %i %i \n", command, n_of_instructions);
+	instructions = malloc((n_of_instructions+1) * sizeof(instruction));
+	switch (command) {
+	case SETI: {
+	    instruction instr = (instruction)
+		{
+		 .instr = SET,
+		 .argc = 2,
+		 .argv = extract_two_integer_arguments(arguments)
+		};
+	    instructions[n_of_instructions] = instr;
+	    print_instruction(instr);
+
+	    break;
+	}
+
+	case SETS: {
+	    //	    printf("%s", extract_one_integer_and_one_string_arguments(arguments)[1].value.string);
+	    instruction instr = (instruction)
+		{
+		 .instr = SET,
+		 .argc = 2,
+		 .argv = extract_one_integer_and_one_string_arguments(arguments)
+		};
+	    instructions[n_of_instructions] = instr;
+	    print_instruction(instr);
+
+	    break;
+	}
+
+
+	case MOV: {
+	    instruction instr = (instruction)
+		{
+		 .instr = MOV,
+		 .argc = 2,
+		 .argv = extract_two_integer_arguments(arguments)
+		};
+	    instructions[n_of_instructions] = instr;
+	    print_instruction(instr);
+
+	    break;
+	}
+
+	}
+	++n_of_instructions;
+    }
+    print_instruction(instructions[0]);
+    /*
+    char sentence []="echo \"foobar\"|cat";
+    char str [20];
+    sscanf (sentence,"%*[^\"]\"%[^\"]\"",str);
+    printf ("%s\n",str);
+    */
+    fclose(fp);
+    return 0;
 }
